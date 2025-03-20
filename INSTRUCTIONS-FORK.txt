@@ -1,0 +1,97 @@
+INSTRUCTIONS POUR METTRE À JOUR CRYENGINE-CONVERTER POUR STAR CITIZEN 4.0.2
+===========================================================================
+
+Ce guide explique comment modifier le convertisseur Cryengine-Converter pour le rendre compatible avec Star Citizen 4.0.2.
+
+PRÉREQUIS
+---------
+- Visual Studio 2019 ou 2022 (Community Edition est suffisant)
+- Connaissance de base de C# et .NET
+- Git (optionnel, mais recommandé)
+
+ÉTAPE 1: CLONER LE DÉPÔT
+------------------------
+Si vous avez Git:
+```
+git clone https://github.com/Markemp/Cryengine-Converter.git
+cd Cryengine-Converter
+```
+
+Si vous n'avez pas Git:
+- Téléchargez le dépôt sous forme de ZIP depuis https://github.com/Markemp/Cryengine-Converter
+- Extrayez-le dans un dossier
+
+ÉTAPE 2: APPLIQUER LE PATCH
+---------------------------
+Option 1 - Si vous avez Git:
+```
+git apply patch-key5-fix.diff
+```
+
+Option 2 - Modification manuelle:
+- Ouvrez le fichier `CgfConverter/Renderers/Collada/ColladaModelRenderer.cs`
+- Trouvez la méthode `WriteGeometries(Model model)` (vers la ligne 512)
+- Ajoutez le code suivant au début de la méthode, juste après l'accolade ouvrante:
+
+```csharp
+// Fix for Star Citizen 4.0.2 - Handle missing dictionary key 5
+// This patch modifies the code to check for key existence before accessing it
+foreach (var node in model.NodeMap)
+{
+    if (node.Value.Mesh?.MeshSubsets != null)
+    {
+        foreach (var subset in node.Value.Mesh.MeshSubsets)
+        {
+            // Check and add key 5 if not present
+            // This is a workaround for newer SC versions where the structure changed
+            if (subset.StreamMasks != null && !subset.StreamMasks.ContainsKey(5))
+            {
+                // Add a placeholder for the missing key
+                subset.StreamMasks[5] = 0; // Default value
+            }
+        }
+    }
+}
+```
+
+ÉTAPE 3: COMPILER LE PROJET
+---------------------------
+1. Ouvrez la solution dans Visual Studio:
+   - Double-cliquez sur le fichier "Cryengine Converter.sln"
+   - Ou lancez Visual Studio et ouvrez la solution
+
+2. Sélectionnez la configuration:
+   - Choisissez "Release" dans la barre d'outils
+   - Vérifiez que la plateforme est bien "Any CPU"
+
+3. Compilez la solution:
+   - Cliquez sur "Build" > "Build Solution" 
+   - Ou appuyez sur Ctrl+Shift+B
+
+4. Récupérez le fichier exécutable:
+   - Le fichier se trouvera dans le dossier "cgf-converter\bin\Release"
+   - Copiez "cgf-converter.exe" vers votre dossier d'extraction de Star Citizen
+
+ÉTAPE 4: TESTER LE CONVERTISSEUR
+--------------------------------
+Testez avec un fichier CGF simple:
+```
+.\cgf-converter.exe "chemin\vers\un\fichier.cgf" -dae -objectdir "chemin\vers\dossier\Data"
+```
+
+COMMENT FONCTIONNE LE PATCH
+---------------------------
+Le patch ajoute une vérification pour s'assurer que la clé '5' existe dans le dictionnaire StreamMasks de chaque mesh subset. Si la clé n'existe pas, elle est ajoutée avec une valeur par défaut de 0.
+
+Ce correctif est nécessaire car le format CGF de Star Citizen 4.0.2 a été modifié par rapport aux versions précédentes, et certaines clés qui étaient auparavant obligatoires dans le dictionnaire ne sont plus présentes.
+
+CONTRIBUTION
+-----------
+Si cette modification fonctionne bien, considérez la soumettre comme pull request au dépôt original:
+https://github.com/Markemp/Cryengine-Converter/pulls
+
+DÉPANNAGE
+---------
+- Si vous rencontrez d'autres erreurs similaires (KeyNotFoundException), vous devrez peut-être ajouter des vérifications supplémentaires pour d'autres clés.
+- Si vous rencontrez des erreurs de compilation, vérifiez que vous avez la bonne version de .NET installée.
+- Si l'exécutable compilé ne fonctionne pas, vérifiez les journaux d'erreurs pour plus d'informations. 

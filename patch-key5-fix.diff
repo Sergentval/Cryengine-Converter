@@ -1,0 +1,28 @@
+--- a/CgfConverter/Renderers/Collada/ColladaModelRenderer.cs
++++ b/CgfConverter/Renderers/Collada/ColladaModelRenderer.cs
+@@ -512,6 +512,23 @@ namespace CgfConverter.Renderers.Collada
+     public void WriteGeometries(Model model)
+     {
++        // Fix for Star Citizen 4.0.2 - Handle missing dictionary key 5
++        // This patch modifies the code to check for key existence before accessing it
++        foreach (var node in model.NodeMap)
++        {
++            if (node.Value.Mesh?.MeshSubsets != null)
++            {
++                foreach (var subset in node.Value.Mesh.MeshSubsets)
++                {
++                    // Check and add key 5 if not present
++                    // This is a workaround for newer SC versions where the structure changed
++                    if (subset.StreamMasks != null && !subset.StreamMasks.ContainsKey(5))
++                    {
++                        // Add a placeholder for the missing key
++                        subset.StreamMasks[5] = 0; // Default value
++                    }
++                }
++            }
++        }
++
+         // Create a dictionary to store all the geometries by their name and id
+         DaeObject.Library_Geometries = new();
+     }
+ } 
